@@ -1,0 +1,149 @@
+{
+  description = "Logos Blockchain Module - Qt6 Plugin";
+
+  inputs = {
+    nixpkgs.follows = "logos-liblogos/nixpkgs";
+
+    logos-liblogos.url = "github:logos-co/logos-liblogos";
+    logos-core.url = "github:logos-co/logos-cpp-sdk";
+
+    logos-execution-zone.url = "github:logos-blockchain/logos-execution-zone?ref=Pravdyvy/indexer-ffi-spawns-rpc-for-communication";
+
+    logos-module-viewer.url = "github:logos-co/logos-module-viewer";
+  };
+
+  outputs =
+    {
+      self,
+      nixpkgs,
+      logos-core,
+      logos-execution-zone,
+      logos-module-viewer,
+      ...
+    }:
+    let
+      lib = nixpkgs.lib;
+
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+        "x86_64-windows"
+      ];
+
+      forAll = lib.genAttrs systems;
+
+      mkPkgs = system: import nixpkgs { inherit system; };
+    in
+    {
+      packages = forAll (
+        system:
+        let
+          pkgs = mkPkgs system;
+          llvmPkgs = pkgs.llvmPackages;
+
+          logosCore = logos-core.packages.${system}.default;
+          logosExecutionZoneIndexerPackage = logos-execution-zone.packages.${system}.indexer;
+
+          logosExecutionZoneIndexerModulePackage = pkgs.stdenv.mkDerivation {
+            pname = "logos-execution-zone-module";
+            version = "dev";
+            src = ./.;
+
+            nativeBuildInputs = [
+              pkgs.cmake
+              pkgs.ninja
+              pkgs.pkg-config
+              pkgs.qt6.wrapQtAppsHook
+            ];
+
+            buildInputs = [
+              pkgs.qt6.qtbase
+              pkgs.qt6.qtremoteobjects
+              pkgs.qt6.qttools
+              llvmPkgs.clang
+              llvmPkgs.libclang
+              logosExecutionZoneIndexerPackage
+            ]
+            ++ lib.optionals pkgs.stdenv.isDarwin [
+              pkgs.libiconv
+              pkgs.cacert
+            ];
+
+            LIBCLANG_PATH = "${llvmPkgs.libclang.lib}/lib";
+            CLANG_PATH = "${llvmPkgs.clang}/bin/clang";
+            SSL_CERT_FILE = lib.optionalString pkgs.stdenv.isDarwin "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
+
+            cmakeFlags = [
+              "-DLOGOS_CORE_ROOT=${logosCore}"
+              "-DLOGOS_EXECUTION_ZONE_INDEXER_LIB=${logosExecutionZoneIndexerPackage}/lib"
+              "-DLOGOS_EXECUTION_ZONE_INDEXER_INCLUDE=${logosExecutionZoneIndexerPackage}/include"
+            ];
+        };
+        in
+        {
+          lib = logosExecutionZoneIndexerModulePackage;
+          default = logosExecutionZoneIndexerModulePackage;
+        }
+      );
+
+      apps = forAll (
+        system:
+        let
+          pkgs = mkPkgs system;
+          logosExecutionZoneIndexerModuleLib = self.packages.${system}.lib;
+          logosModuleViewerPackage = logos-module-viewer.packages.${system}.default;
+          extension = if pkgs.stdenv.isDarwin then "dylib"
+            else if pkgs.stdenv.hostPlatform.isWindows then "dll"
+            else "so";
+          inspectModule = {
+            type = "app";
+            program =
+              "${pkgs.writeShellScriptBin "inspect-module" ''
+                exec ${logosModuleViewerPackage}/bin/logos-module-viewer \
+                  --module ${logosExecutionZoneIndexerModuleLib}/lib/liblogos_execution_zone_indexer_module.${extension}
+              ''}/bin/inspect-module";
+          };
+        in
+        {
+          inspect-module = inspectModule;
+          default = inspectModule;
+        }
+      );
+
+      devShells = forAll (
+        system:
+        let
+          pkgs = mkPkgs system;
+          pkg = self.packages.${system}.default;
+          logosCorePackage = logos-core.packages.${system}.default;
+          logosExecutionZoneIndexerPackage = logos-execution-zone.packages.${system}.indexer;
+        in
+        {
+          default = pkgs.mkShell {
+            inputsFrom = [ pkg ];
+
+            inherit (pkg)
+              LIBCLANG_PATH
+              CLANG_PATH;
+
+            LOGOS_CORE_ROOT = "${logosCorePackage}";
+            LOGOS_EXECUTION_ZONE_INDEXER_LIB = "${logosExecutionZoneIndexerPackage}/lib";
+            LOGOS_EXECUTION_ZONE_INDEXER_INCLUDE = "${logosExecutionZoneIndexerPackage}/include";
+
+            shellHook = ''
+              BLUE='\e[1;34m'
+              GREEN='\e[1;32m'
+              RESET='\e[0m'
+
+              echo -e "\n''${BLUE}=== Logos Execution Zone Module Development Environment ===''${RESET}"
+              echo -e "''${GREEN}LOGOS_CORE_ROOT:''${RESET}                     $LOGOS_CORE_ROOT"
+              echo -e "''${GREEN}LOGOS_EXECUTION_ZONE_INDEXER_LIB:''${RESET}     $LOGOS_EXECUTION_ZONE_INDEXER_LIB"
+              echo -e "''${GREEN}LOGOS_EXECUTION_ZONE_INDEXER_INCLUDE:''${RESET} $LOGOS_EXECUTION_ZONE_INDEXER_INCLUDE"
+              echo -e "''${BLUE}---------------------------------------------------------''${RESET}"
+            '';
+          };
+        }
+      );
+    };
+}
