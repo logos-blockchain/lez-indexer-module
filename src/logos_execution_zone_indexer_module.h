@@ -1,5 +1,4 @@
-#ifndef LOGOS_EXECUTION_ZONE_INDEXER_MODULE_H
-#define LOGOS_EXECUTION_ZONE_INDEXER_MODULE_H
+#pragma once
 
 #include "i_logos_execution_zone_indexer_module.h"
 

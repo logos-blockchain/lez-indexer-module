@@ -1,5 +1,4 @@
-#ifndef I_LOGOS_EXECUTION_ZONE_INDEXER_MODULE_H
-#define I_LOGOS_EXECUTION_ZONE_INDEXER_MODULE_H
+#pragma once
 
 #include <core/interface.h>
 
