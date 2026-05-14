@@ -21,5 +21,3 @@ public:
 
 #define ILogosExecutionZoneIndexerModule_iid "org.logos.ilogosexecutionzoneindexermodule"
 Q_DECLARE_INTERFACE(ILogosExecutionZoneIndexerModule, ILogosExecutionZoneIndexerModule_iid)
-
-#endif

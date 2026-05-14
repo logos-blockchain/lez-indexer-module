@@ -44,5 +44,3 @@ public:
 signals:
     void eventResponse(const QString& eventName, const QVariantList& data);
 };
-
-#endif
