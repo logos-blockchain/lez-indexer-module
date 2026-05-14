@@ -7,7 +7,7 @@
     logos-liblogos.url = "github:logos-co/logos-liblogos";
     logos-core.url = "github:logos-co/logos-cpp-sdk";
 
-    logos-execution-zone.url = "github:logos-blockchain/logos-execution-zone?ref=Pravdyvy/nix-fix";
+    logos-execution-zone.url = "github:logos-blockchain/logos-execution-zone?ref=main";
 
     logos-module-viewer.url = "github:logos-co/logos-module-viewer";
   };
