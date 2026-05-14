@@ -2,7 +2,7 @@
   description = "Logos Blockchain Module - Qt6 Plugin";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.follows = "logos-liblogos/nixpkgs";
 
     logos-liblogos.url = "github:logos-co/logos-liblogos";
     logos-core.url = "github:logos-co/logos-cpp-sdk";
