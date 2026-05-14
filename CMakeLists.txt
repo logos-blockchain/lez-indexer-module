@@ -11,6 +11,8 @@ set(LOGOS_EXECUTION_ZONE_INDEXER_ROOT "" CACHE PATH "Path to logos-execution-zon
 set(LOGOS_EXECUTION_ZONE_INDEXER_LIB "" CACHE PATH "Path to prebuilt logos-execution-zone-indexer lib.")
 set(LOGOS_EXECUTION_ZONE_INDEXER_INCLUDE "" CACHE PATH "Path to prebuilt logos-execution-zone-indexer include.")
 
+set(LOGOS_EXECUTION_ZONE_PREBUILT FALSE)
+
 set(HAS_LOGOS_CORE_ROOT FALSE)
 set(HAS_LOGOS_EXECUTION_ZONE_INDEXER_ROOT FALSE)
 set(HAS_LOGOS_EXECUTION_ZONE_INDEXER_LIB FALSE)
@@ -162,6 +164,7 @@ target_sources(${PLUGIN_TARGET} PRIVATE
 
 set_property(TARGET ${PLUGIN_TARGET} PROPERTY PUBLIC_HEADER
         ${CMAKE_CURRENT_SOURCE_DIR}/src/i_logos_execution_zone_indexer_module.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/logos_execution_zone_indexer_module.h
 )
 
 target_include_directories(${PLUGIN_TARGET} PRIVATE
