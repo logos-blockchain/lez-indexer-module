@@ -162,6 +162,7 @@ target_sources(${PLUGIN_TARGET} PRIVATE
 
 set_property(TARGET ${PLUGIN_TARGET} PROPERTY PUBLIC_HEADER
         ${CMAKE_CURRENT_SOURCE_DIR}/src/i_logos_execution_zone_indexer_module.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/logos_execution_zone_indexer_module.h
 )
 
 target_include_directories(${PLUGIN_TARGET} PRIVATE
