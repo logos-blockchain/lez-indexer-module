@@ -25,7 +25,7 @@ LogosExecutionZoneIndexerModule::~LogosExecutionZoneIndexerModule() {
 // === Plugin Interface ===
 
 QString LogosExecutionZoneIndexerModule::name() const {
-    return "liblogos_execution_zone_indexer_module";
+    return "lez_indexer_module";
 }
 
 QString LogosExecutionZoneIndexerModule::version() const {

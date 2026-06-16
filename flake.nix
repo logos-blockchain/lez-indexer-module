@@ -61,6 +61,7 @@
               pkgs.qt6.qtbase
               pkgs.qt6.qtremoteobjects
               pkgs.qt6.qttools
+              pkgs.openssl
               llvmPkgs.clang
               llvmPkgs.libclang
               logosExecutionZoneIndexerPackage

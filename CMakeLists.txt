@@ -51,6 +51,12 @@ endif()
 # ---- Qt ----
 find_package(Qt6 REQUIRED COMPONENTS Core RemoteObjects)
 set(CMAKE_AUTOMOC ON)
+
+# ---- OpenSSL ----
+# liblogos_sdk.a uses boost::asio::ssl (rpc_server, plain_transport_*); as a
+# static archive it does not carry its OpenSSL dependency, so the final link
+# of this plugin must link libssl/libcrypto itself.
+find_package(OpenSSL REQUIRED)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
@@ -177,6 +183,8 @@ target_link_libraries(${PLUGIN_TARGET} PRIVATE
         logos_execution_zone_indexer
         logos_cpp_sdk
         logos_core
+        OpenSSL::SSL
+        OpenSSL::Crypto
 )
 
 target_compile_definitions(${PLUGIN_TARGET} PRIVATE
