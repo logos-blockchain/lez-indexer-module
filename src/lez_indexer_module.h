@@ -1,6 +1,6 @@
 #pragma once
 
-#include "i_logos_execution_zone_indexer_module.h"
+#include "i_lez_indexer_module.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -15,18 +15,18 @@ extern "C" {
 #include <QString>
 #include <QVariantList>
 
-class LogosExecutionZoneIndexerModule : public QObject, public PluginInterface, public ILogosExecutionZoneIndexerModule {
+class LezIndexerModule : public QObject, public PluginInterface, public ILezIndexerModule {
     Q_OBJECT
-    Q_PLUGIN_METADATA(IID ILogosExecutionZoneIndexerModule_iid FILE LOGOS_EXECUTION_ZONE_INDEXER_MODULE_METADATA_FILE)
-    Q_INTERFACES(PluginInterface ILogosExecutionZoneIndexerModule)
+    Q_PLUGIN_METADATA(IID ILezIndexerModule_iid FILE LEZ_INDEXER_MODULE_METADATA_FILE)
+    Q_INTERFACES(PluginInterface ILezIndexerModule)
 
 private:
     LogosAPI* logosApi = nullptr;
     IndexerServiceFFI* indexer_service_ffi = nullptr;
 
 public:
-    LogosExecutionZoneIndexerModule();
-    ~LogosExecutionZoneIndexerModule() override;
+    LezIndexerModule();
+    ~LezIndexerModule() override;
 
     // === Plugin Interface ===
     [[nodiscard]] QString name() const override;
@@ -40,7 +40,7 @@ public:
 
     // Indexer Lifecycle
     Q_INVOKABLE int start_indexer(const QString& config_path, uint16_t port) override;
-    
+
 signals:
     void eventResponse(const QString& eventName, const QVariantList& data);
 };

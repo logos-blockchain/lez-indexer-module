@@ -1,4 +1,4 @@
-#include "logos_execution_zone_indexer_module.h"
+#include "lez_indexer_module.h"
 
 #include <algorithm>
 #include <QtCore/QDebug>
@@ -7,9 +7,9 @@
 #include <QtCore/QJsonObject>
 #include <QtCore/QVariantMap>
 
-LogosExecutionZoneIndexerModule::LogosExecutionZoneIndexerModule() = default;
+LezIndexerModule::LezIndexerModule() = default;
 
-LogosExecutionZoneIndexerModule::~LogosExecutionZoneIndexerModule() {
+LezIndexerModule::~LezIndexerModule() {
     if (indexer_service_ffi) {
         OperationStatus operation_result = stop_indexer(indexer_service_ffi);
 
@@ -24,23 +24,23 @@ LogosExecutionZoneIndexerModule::~LogosExecutionZoneIndexerModule() {
 
 // === Plugin Interface ===
 
-QString LogosExecutionZoneIndexerModule::name() const {
+QString LezIndexerModule::name() const {
     return "lez_indexer_module";
 }
 
-QString LogosExecutionZoneIndexerModule::version() const {
+QString LezIndexerModule::version() const {
     return "1.0.0";
 }
 
 // === Logos Core ===
 
-void LogosExecutionZoneIndexerModule::initLogos(LogosAPI* logosApiInstance) {
+void LezIndexerModule::initLogos(LogosAPI* logosApiInstance) {
     logosAPI = logosApiInstance;
 }
 
 // === Indexer Lifecycle ===
 
-int LogosExecutionZoneIndexerModule::start_indexer(const QString& config_path, uint16_t port) {
+int LezIndexerModule::start_indexer(const QString& config_path, uint16_t port) {
     if (!indexer_service_ffi) {
         QByteArray utf8 = config_path.toUtf8();
         const char* c_path = utf8.constData();

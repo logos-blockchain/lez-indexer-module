@@ -2,9 +2,9 @@
 
 #include <core/interface.h>
 
-class ILogosExecutionZoneIndexerModule {
+class ILezIndexerModule {
 public:
-    virtual ~ILogosExecutionZoneIndexerModule() = default;
+    virtual ~ILezIndexerModule() = default;
 
     // === Logos Core ===
 
@@ -19,5 +19,5 @@ public:
     ) = 0;
 };
 
-#define ILogosExecutionZoneIndexerModule_iid "org.logos.ilogosexecutionzoneindexermodule"
-Q_DECLARE_INTERFACE(ILogosExecutionZoneIndexerModule, ILogosExecutionZoneIndexerModule_iid)
+#define ILezIndexerModule_iid "org.logos.ilezindexermodule"
+Q_DECLARE_INTERFACE(ILezIndexerModule, ILezIndexerModule_iid)

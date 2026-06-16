@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(logos_execution_zone_indexer_module LANGUAGES CXX)
+project(LEZIndexerModule LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -151,7 +151,7 @@ if(WIN32)
 endif()
 
 add_library(logos_core STATIC IMPORTED
-        src/i_logos_execution_zone_indexer_module.h)
+        src/i_lez_indexer_module.h)
 set_target_properties(logos_core PROPERTIES
         IMPORTED_LOCATION "${SDK_LIB}"
 )
@@ -160,17 +160,28 @@ add_library(logos_cpp_sdk INTERFACE)
 target_include_directories(logos_cpp_sdk INTERFACE "${SDK_INC}")
 
 # ---- Plugin ----
-set(PLUGIN_TARGET logos_execution_zone_indexer_module)
+set(PLUGIN_TARGET lez_indexer_module)
 
-qt_add_plugin(${PLUGIN_TARGET} CLASS_NAME LogosExecutionZoneIndexerModule)
+qt_add_plugin(${PLUGIN_TARGET} CLASS_NAME LezIndexerModule)
+
+# A consumer (module-viewer / basecamp) derives the QtRO object name it INVOKES
+# from the produced library's FILENAME, whereas logos_host REGISTERS the plugin
+# under metadata.json `name`. They must be identical, and short — macOS caps the
+# QtRO `local:` socket path (sun_path) at 104 bytes, so a long name makes the host
+# fail to listen. `PREFIX ""` drops the `lib` prefix so the file is exactly
+# `lez_indexer_module.<ext>` == metadata `name` == `main` == name().
+set_target_properties(${PLUGIN_TARGET} PROPERTIES
+        OUTPUT_NAME lez_indexer_module
+        PREFIX ""
+)
 
 target_sources(${PLUGIN_TARGET} PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/logos_execution_zone_indexer_module.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/lez_indexer_module.cpp
 )
 
 set_property(TARGET ${PLUGIN_TARGET} PROPERTY PUBLIC_HEADER
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/i_logos_execution_zone_indexer_module.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/logos_execution_zone_indexer_module.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/i_lez_indexer_module.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/lez_indexer_module.h
 )
 
 target_include_directories(${PLUGIN_TARGET} PRIVATE
@@ -188,7 +199,7 @@ target_link_libraries(${PLUGIN_TARGET} PRIVATE
 )
 
 target_compile_definitions(${PLUGIN_TARGET} PRIVATE
-        LOGOS_EXECUTION_ZONE_INDEXER_MODULE_METADATA_FILE="${CMAKE_CURRENT_SOURCE_DIR}/metadata.json"
+        LEZ_INDEXER_MODULE_METADATA_FILE="${CMAKE_CURRENT_SOURCE_DIR}/metadata.json"
 )
 
 add_dependencies(${PLUGIN_TARGET} logos_execution_zone_libs)

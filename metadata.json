@@ -5,7 +5,7 @@
   "author": "Logos Blockchain Team",
   "type": "core",
   "category": "blockchain",
-  "main": "liblogos_execution_zone_indexer_module",
+  "main": "lez_indexer_module",
   "dependencies": [],
   "capabilities": [],
   "include": ["libnomos.dylib"]
