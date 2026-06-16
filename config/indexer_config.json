@@ -1,7 +1,7 @@
 {
     "home": ".",
     "consensus_info_polling_interval": "1s",
-    "bedrock_client_config": {
+    "bedrock_config": {
         "addr": "http://localhost:8080",
         "backoff": {
             "start_delay": "100ms",
