@@ -45,8 +45,8 @@
           logosCore = logos-core.packages.${system}.default;
           logosExecutionZoneIndexerPackage = logos-execution-zone.packages.${system}.indexer;
 
-          logosExecutionZoneIndexerModulePackage = pkgs.stdenv.mkDerivation {
-            pname = "logos-execution-zone-module";
+          lezIndexerModulePackage = pkgs.stdenv.mkDerivation {
+            pname = "lez-indexer-module";
             version = "dev";
             src = ./.;
 
@@ -83,8 +83,8 @@
         };
         in
         {
-          lib = logosExecutionZoneIndexerModulePackage;
-          default = logosExecutionZoneIndexerModulePackage;
+          lib = lezIndexerModulePackage;
+          default = lezIndexerModulePackage;
         }
       );
 
@@ -92,7 +92,7 @@
         system:
         let
           pkgs = mkPkgs system;
-          logosExecutionZoneIndexerModuleLib = self.packages.${system}.lib;
+          lezIndexerModuleLib = self.packages.${system}.lib;
           logosModuleViewerPackage = logos-module-viewer.packages.${system}.default;
           extension = if pkgs.stdenv.isDarwin then "dylib"
             else if pkgs.stdenv.hostPlatform.isWindows then "dll"
@@ -102,7 +102,7 @@
             program =
               "${pkgs.writeShellScriptBin "inspect-module" ''
                 exec ${logosModuleViewerPackage}/bin/logos-module-viewer \
-                  --module ${logosExecutionZoneIndexerModuleLib}/lib/liblogos_execution_zone_indexer_module.${extension}
+                  --module ${lezIndexerModuleLib}/lib/lez_indexer_module.${extension}
               ''}/bin/inspect-module";
           };
         in

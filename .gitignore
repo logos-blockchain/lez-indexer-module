@@ -10,3 +10,9 @@ result
 
 # Node
 resources/
+
+# RocksDB
+rocksdb
+
+# Other
+.DS_Store

@@ -7,7 +7,7 @@ configure:
       ${LOGOS_EXECUTION_ZONE_INDEXER_INCLUDE:+-DLOGOS_EXECUTION_ZONE_INDEXER_INCLUDE="$LOGOS_EXECUTION_ZONE_INDEXER_INCLUDE"}
 
 build: configure
-    cmake --build build --parallel --target logos_execution_zone_indexer_module
+    cmake --build build --parallel --target lez_indexer_module
 
 clean:
     rm -rf build result
