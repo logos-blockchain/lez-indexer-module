@@ -39,7 +39,7 @@ public:
     //  === Logos Execution Zone Indexer  ===
 
     // Indexer Lifecycle
-    Q_INVOKABLE int start_indexer(const QString& config_path, uint16_t port) override;
+    Q_INVOKABLE int start_indexer(const QString& config_path, const QString& port) override;
 
 signals:
     void eventResponse(const QString& eventName, const QVariantList& data);
