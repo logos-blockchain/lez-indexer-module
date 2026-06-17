@@ -177,6 +177,7 @@ set_target_properties(${PLUGIN_TARGET} PROPERTIES
 
 target_sources(${PLUGIN_TARGET} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/lez_indexer_module.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/lez_ffi_marshalling.cpp
 )
 
 set_property(TARGET ${PLUGIN_TARGET} PROPERTY PUBLIC_HEADER
