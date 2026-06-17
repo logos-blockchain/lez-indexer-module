@@ -41,6 +41,17 @@ public:
     // Indexer Lifecycle
     Q_INVOKABLE int start_indexer(const QString& config_path, const QString& port) override;
 
+    // Indexer Queries (return compact JSON strings; see i_lez_indexer_module.h)
+    Q_INVOKABLE QString getAccount(const QString& account_id) override;
+    Q_INVOKABLE QString getBlockById(const QString& block_id) override;
+    Q_INVOKABLE QString getBlockByHash(const QString& hash) override;
+    Q_INVOKABLE QString getTransaction(const QString& hash) override;
+    Q_INVOKABLE QString getBlocks(const QString& before, const QString& limit) override;
+    Q_INVOKABLE QString getLastFinalizedBlockId() override;
+    Q_INVOKABLE QString getTransactionsByAccount(const QString& account_id,
+                                                 const QString& offset,
+                                                 const QString& limit) override;
+
 signals:
     void eventResponse(const QString& eventName, const QVariantList& data);
 };
