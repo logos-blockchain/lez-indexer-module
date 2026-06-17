@@ -8,6 +8,9 @@ build/
 target/
 result
 
+# Nix .lgx module bundle outputs
+lez-indexer-module-lgx-*
+
 # Node
 resources/
 

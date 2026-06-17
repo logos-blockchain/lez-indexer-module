@@ -47,7 +47,7 @@
 
           lezIndexerModulePackage = pkgs.stdenv.mkDerivation {
             pname = "lez-indexer-module";
-            version = "dev";
+            version = (lib.importJSON ./metadata.json).version;
             src = ./.;
 
             nativeBuildInputs = [
