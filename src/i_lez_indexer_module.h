@@ -36,8 +36,11 @@ public:
     virtual QString getBlockById(const QString& block_id) = 0;
     virtual QString getBlockByHash(const QString& hash) = 0;
     virtual QString getTransaction(const QString& hash) = 0;
+    // `before` is the optional pagination cursor: a block id to page back from,
+    // or an empty string to start from the tip. `limit` caps the result count.
     virtual QString getBlocks(const QString& before, const QString& limit) = 0;
     virtual QString getLastFinalizedBlockId() = 0;
+    // `offset` and `limit` are both required (the paging window).
     virtual QString getTransactionsByAccount(
         const QString& account_id,
         const QString& offset,

@@ -389,7 +389,8 @@ QString LezIndexerModule::getBlocks(const QString& before, const QString& limit)
         return {};
     }
 
-    // `before` is optional: an empty string means "from the tip". `beforeVal`
+    // `before` is the optional pagination cursor: an empty string means "from
+    // the tip", a non-empty value that fails to parse is an error. `beforeVal`
     // must outlive the call since FfiOption_u64 borrows its address.
     uint64_t beforeVal = 0;
     bool hasBefore = false;
