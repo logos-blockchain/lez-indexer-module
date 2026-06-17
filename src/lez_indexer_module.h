@@ -52,6 +52,19 @@ public:
                                                  const QString& offset,
                                                  const QString& limit) override;
 
+    // Indexer Logging (opt-in)
+    //
+    // Installs the indexer FFI's logger (env_logger) so the indexer's Rust `log`
+    // output surfaces in the host process.
+    //
+    // Commented out because the underlying `::init_logger()` export does not yet
+    // exist in the pinned logos-execution-zone FFI
+    // 
+    // Uncomment this single block once the export lands upstream
+    // and the pin is bumped to a rev that includes it.
+    //
+    // Q_INVOKABLE void init_logger() { ::init_logger(); }
+
 signals:
     void eventResponse(const QString& eventName, const QVariantList& data);
 };
