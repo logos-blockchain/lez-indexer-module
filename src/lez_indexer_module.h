@@ -48,9 +48,8 @@ public:
     Q_INVOKABLE QString getTransaction(const QString& hash) override;
     Q_INVOKABLE QString getBlocks(const QString& before, const QString& limit) override;
     Q_INVOKABLE QString getLastFinalizedBlockId() override;
-    Q_INVOKABLE QString getTransactionsByAccount(const QString& account_id,
-                                                 const QString& offset,
-                                                 const QString& limit) override;
+    Q_INVOKABLE QString
+    getTransactionsByAccount(const QString& account_id, const QString& offset, const QString& limit) override;
 
     // Indexer Logging (opt-in)
     //
@@ -59,7 +58,7 @@ public:
     //
     // Commented out because the underlying `::init_logger()` export does not yet
     // exist in the pinned logos-execution-zone FFI
-    // 
+    //
     // Uncomment this single block once the export lands upstream
     // and the pin is bumped to a rev that includes it.
     //

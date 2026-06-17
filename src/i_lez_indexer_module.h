@@ -17,10 +17,7 @@ public:
     // ModuleProxy invokes by exact meta-type match and delivers caller arguments
     // as QString (the module-viewer reads every parameter as text); a uint16_t
     // parameter would never match. It is parsed to a port number internally.
-    virtual int start_indexer(
-        const QString& config_path,
-        const QString& port
-    ) = 0;
+    virtual int start_indexer(const QString& config_path, const QString& port) = 0;
 
     // Indexer Queries
     //
@@ -41,9 +38,11 @@ public:
     virtual QString getTransaction(const QString& hash) = 0;
     virtual QString getBlocks(const QString& before, const QString& limit) = 0;
     virtual QString getLastFinalizedBlockId() = 0;
-    virtual QString getTransactionsByAccount(const QString& account_id,
-                                             const QString& offset,
-                                             const QString& limit) = 0;
+    virtual QString getTransactionsByAccount(
+        const QString& account_id,
+        const QString& offset,
+        const QString& limit
+    ) = 0;
 };
 
 #define ILezIndexerModule_iid "org.logos.ilezindexermodule"
