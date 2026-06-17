@@ -1,14 +1,7 @@
 #pragma once
 
 #include "i_lez_indexer_module.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-#include <indexer_ffi.h>
-#ifdef __cplusplus
-}
-#endif
+#include "lez_indexer_ffi.h"
 
 #include <QJsonArray>
 #include <QObject>
