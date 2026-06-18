@@ -1,12 +1,18 @@
 {
   "name": "lez_indexer_module",
   "version": "1.0.0",
-  "description": "Logos Execution Zone Indexer Module for Logos Core",
-  "author": "Logos Blockchain Team",
   "type": "core",
+  "interface": "universal",
   "category": "blockchain",
-  "main": "lez_indexer_module",
+  "description": "Logos Execution Zone Indexer Module for Logos Core",
+  "main": "lez_indexer_module_plugin",
   "dependencies": [],
-  "capabilities": [],
-  "include": ["libnomos.dylib"]
+  "nix": {
+    "external_libraries": [
+      { "name": "indexer_ffi" }
+    ],
+    "cmake": {
+      "extra_include_dirs": ["lib"]
+    }
+  }
 }

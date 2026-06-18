@@ -1,24 +1,23 @@
 default: build
 
-configure:
-    cmake -S . -B build -G Ninja \
-      ${LOGOS_CORE_ROOT:+-DLOGOS_CORE_ROOT="$LOGOS_CORE_ROOT"} \
-      ${LOGOS_EXECUTION_ZONE_INDEXER_LIB:+-DLOGOS_EXECUTION_ZONE_INDEXER_LIB="$LOGOS_EXECUTION_ZONE_INDEXER_LIB"} \
-      ${LOGOS_EXECUTION_ZONE_INDEXER_INCLUDE:+-DLOGOS_EXECUTION_ZONE_INDEXER_INCLUDE="$LOGOS_EXECUTION_ZONE_INDEXER_INCLUDE"}
+# Build the module plugin via logos-module-builder (-> result/lib/).
+build:
+    nix build
 
-build: configure
-    cmake --build build --parallel --target lez_indexer_module
+# Drop into the builder dev shell.
+develop:
+    nix develop
+
+# Inspect the built plugin's methods + metadata.
+#   lm result/lib/lez_indexer_module_plugin.so
+# Call a method (indexer must be started first):
+#   logoscore -m result/lib -l lez_indexer_module -c "lez_indexer_module.getLastFinalizedBlockId()"
 
 clean:
     rm -rf build result
 
-rebuild: clean build
-
-nix:
-    nix develop
-
 prettify:
-    nix shell nixpkgs#clang-tools -c clang-format -i src/**.cpp src/**.h
+    nix shell nixpkgs#clang-tools -c clang-format -i src/*.cpp src/*.h
 
 unicode-logs file:
     perl -pe 's/\\u([0-9A-Fa-f]{4})/chr(hex($1))/ge' {{file}} | less -R
