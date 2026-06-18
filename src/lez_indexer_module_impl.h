@@ -50,11 +50,15 @@ public:
     std::string getLastFinalizedBlockId();
     /// Transactions touching `account_id` (32-byte hex), paginated by decimal
     /// `offset`/`limit`.
-    std::string getTransactionsByAccount(
-        const std::string& account_id,
-        const std::string& offset,
-        const std::string& limit
-    );
+    //
+    // MUST stay on a single line: the universal `--header-to-lidl` parser drops
+    // methods whose parameter list spans multiple lines, so a wrapped signature
+    // silently vanishes from the published LIDL contract (and thus from typed
+    // consumers like lez_explorer_ui). clang-format off keeps the linter from
+    // re-wrapping this long line.
+    // clang-format off
+    std::string getTransactionsByAccount(const std::string& account_id, const std::string& offset, const std::string& limit);
+    // clang-format on
 
     // Indexer Logging (opt-in)
     //
