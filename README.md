@@ -30,18 +30,21 @@ This will reduce friction when working on the project.
 The module does **not** start the indexer on load — something must invoke its `start_indexer` method (via the module-viewer's invoke panel, or another module / basecamp over the Logos protocol):
 
 ```c
-start_indexer(config_path, port)
+start_indexer(config_path)
 ```
 
 - `config_path` — **absolute** path to a JSON config (see
   [`config/indexer_config.json`](config/indexer_config.json)). It must be absolute: the module runs inside the `logos_host` subprocess, whose working directory is not your shell's.
-- `port` — **legacy** parameter, still required by the pinned `indexer_ffi`. Logos-protocol consumers do not use it; pass any value as a **string** (e.g. `"8779"`). It is slated for removal once the FFI drops it.
 
 On success it returns `0`; a non-zero return is the FFI `OperationStatus` (e.g. `2 = InitializationError`). Once started, consume the indexer through the query methods below.
 
-> [!CAUTION]
+> [!TIP]
 >
-> The FFI does not log, so a non-zero `OperationStatus` code is all you get on failure.
+> By default the indexer is silent. Call `init_logger(level)` once (e.g.
+> `init_logger("info")`; accepts `off`/`error`/`warn`/`info`/`debug`/`trace`) to
+> surface the indexer's own `log` output — useful since a failed call otherwise
+> only reports a numeric `OperationStatus`. Logging is scoped to the indexer
+> crates, and the first call wins.
 
 ### Query methods (the Logos-protocol API)
 

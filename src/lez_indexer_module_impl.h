@@ -27,12 +27,12 @@ public:
     ~LezIndexerModuleImpl();
 
     /// Boot ingestion against the indexer config at `config_path` (must be an
-    /// ABSOLUTE path — the module runs in a logos_host subprocess), listening on
-    /// `port`. Idempotent: a second call while already running is a no-op.
-    /// Returns 0 on success, else the FFI OperationStatus code (-1 on bad port).
+    /// ABSOLUTE path — the module runs in a logos_host subprocess). Idempotent:
+    /// a second call while already running is a no-op. Returns 0 on success,
+    /// else the FFI OperationStatus code.
     /// int64_t (not int): the universal codegen marshals int64_t/std::string/bool
     /// as scalar wire types; a plain `int` return is treated as a JSON payload.
-    int64_t start_indexer(const std::string& config_path, const std::string& port);
+    int64_t start_indexer(const std::string& config_path);
 
     /// Account by 32-byte hex id. The returned JSON omits the id; callers inject
     /// the queried id themselves.
@@ -60,15 +60,10 @@ public:
     std::string getTransactionsByAccount(const std::string& account_id, const std::string& offset, const std::string& limit);
     // clang-format on
 
-    // Indexer Logging (opt-in)
-    //
-    // Installs the indexer FFI's logger (env_logger) so the indexer's Rust `log`
-    // output surfaces in the host process. Commented out because the underlying
-    // `::init_logger()` export does not yet exist in the pinned
-    // logos-execution-zone FFI. Uncomment once the export lands upstream and the
-    // pin is bumped.
-    //
-    // void init_logger();
+    /// Enable the indexer's logging at `level` (off/error/warn/info/debug/trace;
+    /// null or unparseable falls back to info). Scoped to the indexer crates
+    /// only; the first call wins (subsequent calls are no-ops).
+    void init_logger(const std::string& level);
 
 private:
     // IndexerServiceFFI* — opaque here (see class comment); cast in the .cpp.

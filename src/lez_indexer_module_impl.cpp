@@ -32,17 +32,10 @@ LezIndexerModuleImpl::~LezIndexerModuleImpl() {
 
 // === Indexer Lifecycle ===
 
-int64_t LezIndexerModuleImpl::start_indexer(const std::string& config_path, const std::string& port) {
+int64_t LezIndexerModuleImpl::start_indexer(const std::string& config_path) {
     if (!indexer_service_ffi) {
-        char* end = nullptr;
-        const unsigned long parsed = std::strtoul(port.c_str(), &end, 10);
-        if (end == port.c_str() || *end != '\0' || parsed > 0xFFFF) {
-            warn("start_indexer", "invalid port");
-            return -1;
-        }
-        const uint16_t port_num = static_cast<uint16_t>(parsed);
-
-        InitializedIndexerServiceFFIResult res = ::start_indexer(config_path.c_str(), port_num);
+        // Null runtime: the FFI creates and owns its own tokio runtime.
+        InitializedIndexerServiceFFIResult res = ::start_indexer(nullptr, config_path.c_str());
         if (is_error(&res.error)) {
             warn("start_indexer", "indexer FFI error");
             return static_cast<int64_t>(res.error);
@@ -54,19 +47,16 @@ int64_t LezIndexerModuleImpl::start_indexer(const std::string& config_path, cons
     return 0;
 }
 
+void LezIndexerModuleImpl::init_logger(const std::string& level) {
+    ::init_logger(level.c_str());
+}
+
 // === Indexer Queries ===
 //
-// Each method calls the matching query_* FFI function on the handle we already
-// hold (no Runtime needed — the pinned FFI carries its own runtime inside the
-// handle), marshals the returned C struct into compact JSON, then frees the
-// FFI's deep allocations with the matching free_ffi_* function.
-//
-// Known leak: query_* returns its payload in a `Box::into_raw` *outer* box
-// (PointerResult.value), and the free_ffi_* functions free only the inner
-// boxes/vectors (they take the struct by value). The pinned FFI provides no
-// free for the outer box, and libc free() would be UB if Rust's global
-// allocator differs from the system one, so we deliberately leak the small
-// (~8-32 byte) outer wrapper per query. Tracked for an upstream fix.
+// Each method calls the matching query_* FFI function on the handle we hold,
+// marshals the returned C struct into compact JSON, then frees the FFI
+// allocation with the matching free_ffi_* function. The frees take the outer
+// pointer (PointerResult.value) and reclaim the whole allocation.
 
 std::string LezIndexerModuleImpl::getAccount(const std::string& account_id) {
     if (!indexer_service_ffi) {
@@ -87,7 +77,7 @@ std::string LezIndexerModuleImpl::getAccount(const std::string& account_id) {
     }
 
     const std::string out = jsonToCompactString(ffiAccountToJson(*res.value));
-    ::free_ffi_account(*res.value);
+    ::free_ffi_account(res.value);
     return out;
 }
 
@@ -114,7 +104,7 @@ std::string LezIndexerModuleImpl::getBlockById(const std::string& block_id) {
     if (res.value->is_some && res.value->value) {
         out = jsonToCompactString(ffiBlockToJson(*res.value->value));
     }
-    ::free_ffi_block_opt(*res.value);
+    ::free_ffi_block_opt(res.value);
     return out;
 }
 
@@ -140,7 +130,7 @@ std::string LezIndexerModuleImpl::getBlockByHash(const std::string& hash) {
     if (res.value->is_some && res.value->value) {
         out = jsonToCompactString(ffiBlockToJson(*res.value->value));
     }
-    ::free_ffi_block_opt(*res.value);
+    ::free_ffi_block_opt(res.value);
     return out;
 }
 
@@ -167,7 +157,7 @@ std::string LezIndexerModuleImpl::getTransaction(const std::string& hash) {
     if (res.value->is_some && res.value->value) {
         out = jsonToCompactString(ffiTransactionToJson(*res.value->value));
     }
-    ::free_ffi_transaction_opt(*res.value);
+    ::free_ffi_transaction_opt(res.value);
     return out;
 }
 
@@ -213,7 +203,7 @@ std::string LezIndexerModuleImpl::getBlocks(const std::string& before, const std
     for (uintptr_t i = 0; i < res.value->len; ++i) {
         arr.push_back(ffiBlockToJson(res.value->entries[i]));
     }
-    ::free_ffi_block_vec(*res.value);
+    ::free_ffi_block_vec(res.value);
     return jsonToCompactString(arr);
 }
 
@@ -223,15 +213,14 @@ std::string LezIndexerModuleImpl::getLastFinalizedBlockId() {
         return {};
     }
 
-    PointerResult_u64__OperationStatus res = ::query_last_block(handle(indexer_service_ffi));
-    if (is_error(&res.error) || !res.value) {
-        warn("getLastFinalizedBlockId", "indexer FFI error");
+    LastBlockIdResult res = ::query_last_block(handle(indexer_service_ffi));
+    if (is_error(&res.error) || !res.is_some) {
+        warn("getLastFinalizedBlockId", "indexer FFI error or no finalized block yet");
         return {};
     }
 
-    // Bare decimal string; the FFI provides no free for the boxed u64 (leaked,
-    // see the note above).
-    return u64ToString(*res.value);
+    // Bare decimal string; the id is returned inline, nothing to free.
+    return u64ToString(res.block_id);
 }
 
 std::string LezIndexerModuleImpl::getTransactionsByAccount(
@@ -270,6 +259,6 @@ std::string LezIndexerModuleImpl::getTransactionsByAccount(
     for (uintptr_t i = 0; i < res.value->len; ++i) {
         arr.push_back(ffiTransactionToJson(res.value->entries[i]));
     }
-    ::free_ffi_transaction_vec(*res.value);
+    ::free_ffi_transaction_vec(res.value);
     return jsonToCompactString(arr);
 }

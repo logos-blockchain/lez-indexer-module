@@ -1,10 +1,10 @@
 #pragma once
 
-// The generated indexer_ffi.h carries no include guard, so including it from
-// more than one header in the same translation unit redefines every type.
-// Wrap it once here (behind #pragma once) and include THIS header instead of
-// <indexer_ffi.h> directly, so the FFI types can be shared by both
-// lez_indexer_module.h and lez_ffi_marshalling.h.
+// Wrap the generated indexer_ffi.h in `extern "C"` (it is a C header) behind a
+// single include point, so both lez_indexer_module_impl.cpp and
+// lez_ffi_marshalling share the FFI types with C linkage. indexer_ffi.h now
+// carries its own `#pragma once`, so this is purely about linkage + one include
+// site (include THIS header, not <indexer_ffi.h> directly).
 #ifdef __cplusplus
 extern "C" {
 #endif
