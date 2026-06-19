@@ -34,8 +34,11 @@ LezIndexerModuleImpl::~LezIndexerModuleImpl() {
 
 int64_t LezIndexerModuleImpl::start_indexer(const std::string& config_path) {
     if (!indexer_service_ffi) {
-        // Null runtime: the FFI creates and owns its own tokio runtime.
-        InitializedIndexerServiceFFIResult res = ::start_indexer(nullptr, config_path.c_str());
+        // Null runtime: the FFI creates and owns its own tokio runtime. Storage
+        // goes under this module's instance persistence path (host-owned, stable
+        // per Basecamp --user-dir) so RocksDB never lands in the process CWD.
+        InitializedIndexerServiceFFIResult res =
+            ::start_indexer(nullptr, config_path.c_str(), instancePersistencePath().c_str());
         if (is_error(&res.error)) {
             warn("start_indexer", "indexer FFI error");
             return static_cast<int64_t>(res.error);

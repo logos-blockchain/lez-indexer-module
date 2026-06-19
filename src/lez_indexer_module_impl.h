@@ -27,9 +27,10 @@ public:
     ~LezIndexerModuleImpl();
 
     /// Boot ingestion against the indexer config at `config_path` (must be an
-    /// ABSOLUTE path — the module runs in a logos_host subprocess). Idempotent:
-    /// a second call while already running is a no-op. Returns 0 on success,
-    /// else the FFI OperationStatus code.
+    /// ABSOLUTE path — the module runs in a logos_host subprocess). RocksDB state
+    /// is stored under this module's instance persistence path (host-owned),
+    /// independent of the config. Idempotent: a second call while already running
+    /// is a no-op. Returns 0 on success, else the FFI OperationStatus code.
     /// int64_t (not int): the universal codegen marshals int64_t/std::string/bool
     /// as scalar wire types; a plain `int` return is treated as a JSON payload.
     int64_t start_indexer(const std::string& config_path);
