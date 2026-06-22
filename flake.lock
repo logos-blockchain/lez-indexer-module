@@ -1348,11 +1348,11 @@
         "rust-rapidsnark": "rust-rapidsnark"
       },
       "locked": {
-        "lastModified": 1781900321,
-        "narHash": "sha256-zwEhLNqhAL9otUk8cJIygw22YZrAeV0q7RDnne3kmHI=",
+        "lastModified": 1782123395,
+        "narHash": "sha256-vbfaImZIjSdou9KUyOT30vkhphTZiB3tIFlGGAuGjgY=",
         "ref": "erhant/fix-indexer-ffi",
-        "rev": "49d540e64d74bd4517a0f9c42f16f0c9140f7299",
-        "revCount": 2771,
+        "rev": "2c76fa959f6a3f3262f768d49411e5e177ad1b27",
+        "revCount": 2772,
         "type": "git",
         "url": "https://github.com/logos-blockchain/logos-execution-zone"
       },
