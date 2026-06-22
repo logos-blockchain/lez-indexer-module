@@ -226,6 +226,25 @@ std::string LezIndexerModuleImpl::getLastFinalizedBlockId() {
     return u64ToString(res.block_id);
 }
 
+std::string LezIndexerModuleImpl::getStatus() {
+    if (!indexer_service_ffi) {
+        warn("getStatus", "indexer not started");
+        return {};
+    }
+
+    // The FFI builds the status JSON itself (schema owned by indexer_core), so
+    // there is nothing to marshal — copy the C string out and free it.
+    char* json = ::query_status(handle(indexer_service_ffi));
+    if (!json) {
+        warn("getStatus", "indexer FFI error");
+        return {};
+    }
+
+    const std::string out(json);
+    ::free_cstring(json);
+    return out;
+}
+
 std::string LezIndexerModuleImpl::getTransactionsByAccount(
     const std::string& account_id,
     const std::string& offset,
