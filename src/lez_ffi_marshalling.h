@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lez_indexer_ffi.h"
+#include <indexer_ffi.h>
 
 #include <nlohmann/json.hpp>
 #include <string>

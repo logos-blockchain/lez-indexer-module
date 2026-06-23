@@ -1,7 +1,7 @@
 #include "lez_indexer_module_impl.h"
 
 #include "lez_ffi_marshalling.h"
-#include "lez_indexer_ffi.h"
+#include <indexer_ffi.h>
 
 #include <cstdint>
 #include <cstdio>
