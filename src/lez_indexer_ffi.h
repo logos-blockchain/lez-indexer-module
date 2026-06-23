@@ -1,10 +1,11 @@
 #pragma once
 
-// Wrap the generated indexer_ffi.h in `extern "C"` (it is a C header) behind a
-// single include point, so both lez_indexer_module_impl.cpp and
-// lez_ffi_marshalling share the FFI types with C linkage. indexer_ffi.h now
-// carries its own `#pragma once`, so this is purely about linkage + one include
-// site (include THIS header, not <indexer_ffi.h> directly).
+// The generated indexer_ffi.h is a plain C header with no `extern "C"` guard of
+// its own, so a C++ translation unit including it directly would name-mangle the
+// FFI declarations and fail to link against the C-ABI symbols in libindexer_ffi.
+// This wrapper provides the `extern "C"` linkage behind a single include point;
+// both lez_indexer_module_impl.cpp and lez_ffi_marshalling include THIS header,
+// not <indexer_ffi.h> directly.
 #ifdef __cplusplus
 extern "C" {
 #endif
