@@ -1,14 +1,14 @@
 # Logos Execution Zone Indexer Module
 
-A Logos Core **service module** (`type: core`) that runs the Logos Execution Zone (L2) indexer and exposes it to the Logos ecosystem. It is a thin Qt plugin around the `indexer_ffi` library from
-[`logos-execution-zone`](https://github.com/logos-blockchain/logos-execution-zone): it starts the indexer, which connects to an L1/bedrock node, indexes the zone's channel, and serves queries over an RPC (WebSocket) server.
+A Logos Core **service module** (`type: core`, universal authoring model) that runs the Logos Execution Zone (L2) indexer and exposes it to the Logos ecosystem. It is a thin Qt-free plugin around the `indexer_ffi` library from
+[`logos-execution-zone`](https://github.com/logos-blockchain/logos-execution-zone): it starts the indexer, which connects to an L1/bedrock node and indexes the zone's channel, and exposes **query methods over the Logos protocol** (Qt Remote Objects).
 
-Registered module name: **`lez_indexer_module`**. It pairs with the
-[`lez-explorer-ui`](https://github.com/logos-co/lez-explorer-ui) block explorer, which connects to the indexer's RPC endpoint.
+Registered module name: **`lez_indexer_module`**. Its public methods _are_ its API — other modules call them in-process over the Logos protocol. It pairs with the
+[`lez-explorer-ui`](https://github.com/logos-co/lez-explorer-ui) block explorer, which reads from it **in-process over the Logos protocol** (typed `modules().lez_indexer_module.*` calls) — no RPC endpoint or socket in between.
 
 > [!TIP]
 >
-> **Keep the module name short.** `logos_host` derives a Qt Remote Objects `local:` socket from it (`local:logos_<name>_<id>`), and Unix socket path names are limited in at most 108 bytes (see [man unix](https://man7.org/linux/man-pages/man7/unix.7.html)). The build emits the library with no `lib` prefix so its filename equals the registered name (`lez_indexer_module`) - consumers derive the QtRO invoke target from the filename, so the two must stay identical.
+> **Keep the module name short.** `logos_host` derives a Qt Remote Objects `local:` socket from it (`local:logos_<name>_<id>`), and Unix socket path names are limited to at most 108 bytes (see [man unix](https://man7.org/linux/man-pages/man7/unix.7.html)). The build emits the library with no `lib` prefix so its filename equals the registered name (`lez_indexer_module`) — consumers derive the QtRO invoke target from the filename, so the two must stay identical.
 
 ## Setup
 
@@ -27,30 +27,49 @@ This will reduce friction when working on the project.
 
 ## Usage
 
-The module does **not** start the indexer on load - something must invoke its `start_indexer` method (via the module-viewer's invoke panel, or another module / basecamp over the Logos API):
+The module does **not** start the indexer on load — something must invoke its `start_indexer` method (via the module-viewer's invoke panel, or another module / basecamp over the Logos protocol):
 
 ```c
-start_indexer(config_path, port)
+start_indexer(config_path)
 ```
 
 - `config_path` — **absolute** path to a JSON config (see
   [`config/indexer_config.json`](config/indexer_config.json)). It must be absolute: the module runs inside the `logos_host` subprocess, whose working directory is not your shell's.
-- `port` — TCP port for the RPC server, e.g. `8779`. Passed as a **string** (see the macOS / Qt notes below).
 
-On success it returns `0` and the RPC server listens on `ws://localhost:<port>`; point the explorer (or any client) there.
+On success it returns `0`; a non-zero return is the FFI `OperationStatus` (e.g. `2 = InitializationError`). Once started, consume the indexer through the query methods below.
 
-> [!CAUTION]
+> [!TIP]
 >
-> A non-zero return is the FFI `OperationStatus` (e.g. `2 = InitializationError`) — note the FFI does not log, so the numeric code is all you get.
+> By default the indexer is silent. Call `init_logger(level)` once (e.g.
+> `init_logger("info")`; accepts `off`/`error`/`warn`/`info`/`debug`/`trace`) to
+> surface the indexer's own `log` output — useful since a failed call otherwise
+> only reports a numeric `OperationStatus`. Logging is scoped to the indexer
+> crates, and the first call wins.
+
+### Query methods (the Logos-protocol API)
+
+Each returns a compact JSON string (an **empty** string means not-found / failed query); all ids/hashes are 32-byte hex, all numeric args/ids are decimal strings.
+
+| Method                                                | Returns                                                                              |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `getStatus()`                                         | indexer status JSON (schema owned by `indexer_core`)                                 |
+| `getLastFinalizedBlockId()`                           | tip block id (bare decimal string)                                                   |
+| `getBlockById(block_id)`                              | block JSON                                                                           |
+| `getBlockByHash(hash)`                                | block JSON                                                                           |
+| `getBlocks(before, limit)`                            | JSON array of blocks; `before` = `""` for the tip, else a block id to page back from |
+| `getTransaction(hash)`                                | transaction JSON                                                                     |
+| `getAccount(account_id)`                              | account JSON (the payload omits the id; callers inject the queried id)               |
+| `getTransactionsByAccount(account_id, offset, limit)` | JSON array of transactions touching the account                                      |
+
+Because the module uses the universal authoring model (`interface: "universal"`), it publishes a typed LIDL contract, so universal consumers get Qt-typed wrappers (`modules().lez_indexer_module.getBlockById(...)`) rather than dynamic by-name calls.
 
 ### Configuration
 
 `config/indexer_config.json` is deserialized into the indexer's `IndexerConfig`. Key fields:
 
-| Field                 | Meaning                                                                                                                               | Default                 |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| `bedrock_config.addr` | L1/bedrock node URL the indexer reads from; it must be reachable.                                                                     | `http://localhost:8080` |
-| `home`                | Directory for the indexer's RocksDB state, relative to the host's working directory. Use an absolute path for a predictable location. | `"."`                   |
-| `channel_id`          | The zone channel the indexer consumes; must match what the sequencer inscribes.                                                       |                         |
+| Field                 | Meaning                                                                         | Default                 |
+| --------------------- | ------------------------------------------------------------------------------- | ----------------------- |
+| `bedrock_config.addr` | L1/bedrock node URL the indexer reads from; it must be reachable.               | `http://localhost:8080` |
+| `channel_id`          | The zone channel the indexer consumes; must match what the sequencer inscribes. |                         |
 
 The config keys must match the `IndexerConfig` schema of the `logos-execution-zone` rev pinned in `flake.nix`/`flake.lock`; bumping that rev may require re-syncing this file. Unknown keys are ignored.
