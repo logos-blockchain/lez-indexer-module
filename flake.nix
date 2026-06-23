@@ -7,7 +7,7 @@
     # The LEZ indexer Rust FFI lib + header come from this flake's `indexer`
     # package output (/lib/libindexer_ffi.* + /include/indexer_ffi.h). It is a
     # prebuilt Nix derivation, so mkExternalLib consumes it directly (no build).
-    logos-execution-zone.url = "github:logos-blockchain/logos-execution-zone?ref=main";
+    logos-execution-zone.url = "git+https://github.com/logos-blockchain/logos-execution-zone?ref=main";
   };
 
   outputs =

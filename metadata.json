@@ -8,9 +8,7 @@
   "main": "lez_indexer_module_plugin",
   "dependencies": [],
   "nix": {
-    "external_libraries": [
-      { "name": "indexer_ffi" }
-    ],
+    "external_libraries": [{ "name": "indexer_ffi" }],
     "cmake": {
       "extra_include_dirs": ["lib"]
     }
