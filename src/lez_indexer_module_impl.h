@@ -35,6 +35,12 @@ public:
     /// as scalar wire types; a plain `int` return is treated as a JSON payload.
     int64_t start_indexer(const std::string& config_path);
 
+    /// Stop ingestion and release the FFI handle. No-op (returns 0) when the
+    /// indexer isn't running. Pair with start_indexer to apply a new config:
+    /// stop, then start (start_indexer stays idempotent and won't restart on its
+    /// own). Returns 0 on success, else the FFI OperationStatus code.
+    int64_t stop_indexer();
+
     /// Account by 32-byte hex id. The returned JSON omits the id; callers inject
     /// the queried id themselves.
     std::string getAccount(const std::string& account_id);

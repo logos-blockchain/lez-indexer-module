@@ -21,12 +21,8 @@ namespace {
 } // namespace
 
 LezIndexerModuleImpl::~LezIndexerModuleImpl() {
-    if (indexer_service_ffi) {
-        OperationStatus operation_result = stop_indexer(handle(indexer_service_ffi));
-        if (is_error(&operation_result)) {
-            warn("destructor", "indexer FFI error on stop");
-        }
-        indexer_service_ffi = nullptr;
+    if (stop_indexer() != 0) {
+        warn("destructor", "indexer FFI error on stop");
     }
 }
 
@@ -47,6 +43,21 @@ int64_t LezIndexerModuleImpl::start_indexer(const std::string& config_path) {
         indexer_service_ffi = res.value;
     }
 
+    return 0;
+}
+
+int64_t LezIndexerModuleImpl::stop_indexer() {
+    if (!indexer_service_ffi) {
+        return 0; // not running
+    }
+    // stop_indexer frees the handle; null ours before returning so a later start
+    // (or the destructor) doesn't double-free or operate on a dead pointer.
+    OperationStatus operation_result = ::stop_indexer(handle(indexer_service_ffi));
+    indexer_service_ffi = nullptr;
+    if (is_error(&operation_result)) {
+        warn("stop_indexer", "indexer FFI error on stop");
+        return static_cast<int64_t>(operation_result);
+    }
     return 0;
 }
 
