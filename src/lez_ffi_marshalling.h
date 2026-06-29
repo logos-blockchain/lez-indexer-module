@@ -40,6 +40,19 @@ namespace marshalling {
     // Returns false unless it decodes to exactly 32 bytes.
     bool hexToBytes32(const std::string& hex, FfiBytes32* out);
 
+    // Base58 (plain Bitcoin alphabet, no checksum) of `length` raw bytes. This is
+    // the canonical string form of an LEZ *account id* — it matches lee::AccountId
+    // Display, wallet_ffi's account_id_to_base58, and the wallet UI's Base58.js.
+    // Hashes/tx ids/program ids stay hex; only account ids are Base58.
+    std::string bytes32ToBase58(const uint8_t* data, size_t length);
+
+    // Parse an account id string into a fixed 32-byte buffer, accepting EITHER
+    // Base58 (canonical) or 64-char hex (optionally 0x-prefixed). Base58 is tried
+    // first; since a 32-byte value's Base58 is ~44 chars, a 64-hex string fails the
+    // 32-byte check and falls through to hex. Returns false unless it resolves to
+    // exactly 32 bytes.
+    bool accountStrToBytes32(const std::string& account_id, FfiBytes32* out);
+
     nlohmann::json ffiAccountToJson(const FfiAccount& account);
     nlohmann::json ffiTransactionToJson(const FfiTransaction& tx);
     nlohmann::json ffiBlockToJson(const FfiBlock& block);

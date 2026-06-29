@@ -41,8 +41,8 @@ public:
     /// own). Returns 0 on success, else the FFI OperationStatus code.
     int64_t stop_indexer();
 
-    /// Account by 32-byte hex id. The returned JSON omits the id; callers inject
-    /// the queried id themselves.
+    /// Account by id, accepting Base58 (canonical) or 32-byte hex. The returned
+    /// JSON omits the id; callers inject the queried id themselves.
     std::string getAccount(const std::string& account_id);
     /// Block by decimal block id.
     std::string getBlockById(const std::string& block_id);
@@ -59,8 +59,8 @@ public:
     /// "catching up" from "failed": { state (starting/syncing/caught_up/error),
     /// indexedBlockId, lastError }. Empty string if the indexer isn't running.
     std::string getStatus();
-    /// Transactions touching `account_id` (32-byte hex), paginated by decimal
-    /// `offset`/`limit`.
+    /// Transactions touching `account_id` (Base58 or 32-byte hex), paginated by
+    /// decimal `offset`/`limit`.
     //
     // MUST stay on a single line: the universal `--header-to-lidl` parser drops
     // methods whose parameter list spans multiple lines, so a wrapped signature
