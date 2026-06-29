@@ -79,8 +79,8 @@ std::string LezIndexerModuleImpl::getAccount(const std::string& account_id) {
     }
 
     FfiAccountId id;
-    if (!hexToBytes32(account_id, &id)) {
-        warn("getAccount", "invalid account id (need 32-byte hex)");
+    if (!accountStrToBytes32(account_id, &id)) {
+        warn("getAccount", "invalid account id (need Base58 or 32-byte hex)");
         return {};
     }
 
@@ -267,8 +267,8 @@ std::string LezIndexerModuleImpl::getTransactionsByAccount(
     }
 
     FfiAccountId id;
-    if (!hexToBytes32(account_id, &id)) {
-        warn("getTransactionsByAccount", "invalid account id (need 32-byte hex)");
+    if (!accountStrToBytes32(account_id, &id)) {
+        warn("getTransactionsByAccount", "invalid account id (need Base58 or 32-byte hex)");
         return {};
     }
 

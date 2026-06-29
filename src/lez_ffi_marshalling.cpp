@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <vector>
 
 namespace marshalling {
 
@@ -18,6 +19,64 @@ namespace marshalling {
             if (c >= 'A' && c <= 'F')
                 return c - 'A' + 10;
             return -1;
+        }
+
+        // Plain Bitcoin Base58 alphabet (no checksum, no version byte). Must stay
+        // byte-for-byte identical to the `base58` crate (lee::AccountId) and the
+        // wallet UI's Base58.js so account-id strings round-trip across the stack.
+        constexpr char kBase58Alphabet[] = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+
+        // Position of `c` in the Base58 alphabet, or -1 if not a Base58 char.
+        int base58Index(char c) {
+            for (int i = 0; i < 58; ++i) {
+                if (kBase58Alphabet[i] == c)
+                    return i;
+            }
+            return -1;
+        }
+
+        // Decode a Base58 string (whitespace-trimmed) into raw bytes. Returns
+        // false on any character outside the alphabet. Big-integer base 58 -> 256,
+        // leading '1's map to leading zero bytes. Mirrors Base58.js::decode.
+        bool base58Decode(const std::string& s, std::vector<uint8_t>* out) {
+            size_t begin = 0;
+            size_t end = s.size();
+            while (begin < end && std::isspace(static_cast<unsigned char>(s[begin])))
+                ++begin;
+            while (end > begin && std::isspace(static_cast<unsigned char>(s[end - 1])))
+                --end;
+            if (begin == end) {
+                return false;
+            }
+
+            size_t leadingZeros = 0;
+            for (size_t i = begin; i < end && s[i] == '1'; ++i) {
+                ++leadingZeros;
+            }
+
+            std::vector<uint8_t> digits; // base-256, least-significant first
+            for (size_t i = begin; i < end; ++i) {
+                const int idx = base58Index(s[i]);
+                if (idx < 0) {
+                    return false;
+                }
+                int carry = idx;
+                for (size_t j = 0; j < digits.size(); ++j) {
+                    carry += digits[j] * 58;
+                    digits[j] = static_cast<uint8_t>(carry & 0xFF);
+                    carry >>= 8;
+                }
+                while (carry > 0) {
+                    digits.push_back(static_cast<uint8_t>(carry & 0xFF));
+                    carry >>= 8;
+                }
+            }
+
+            out->assign(leadingZeros, 0);
+            for (size_t i = digits.size(); i-- > 0;) {
+                out->push_back(digits[i]);
+            }
+            return true;
         }
     } // namespace
 
@@ -93,6 +152,48 @@ namespace marshalling {
         return true;
     }
 
+    // Base58-encode `length` raw bytes (plain Bitcoin alphabet). Big-integer
+    // base 256 -> 58, leading zero bytes map to leading '1's. Mirrors
+    // Base58.js::encode so account ids match the wallet UI and canonical LEZ.
+    std::string bytes32ToBase58(const uint8_t* data, const size_t length) {
+        size_t leadingZeros = 0;
+        while (leadingZeros < length && data[leadingZeros] == 0) {
+            ++leadingZeros;
+        }
+
+        std::vector<uint8_t> digits; // base-58, least-significant first
+        for (size_t i = 0; i < length; ++i) {
+            int carry = data[i];
+            for (size_t j = 0; j < digits.size(); ++j) {
+                carry += digits[j] * 256;
+                digits[j] = static_cast<uint8_t>(carry % 58);
+                carry /= 58;
+            }
+            while (carry > 0) {
+                digits.push_back(static_cast<uint8_t>(carry % 58));
+                carry /= 58;
+            }
+        }
+
+        std::string out(leadingZeros, '1');
+        for (size_t i = digits.size(); i-- > 0;) {
+            out += kBase58Alphabet[digits[i]];
+        }
+        return out;
+    }
+
+    // Accept an account id as Base58 (canonical) or 64-char hex. Base58 first:
+    // a real 32-byte account is ~44 Base58 chars, so a 64-hex string either hits a
+    // non-Base58 char (e.g. '0') or decodes to the wrong length and falls through.
+    bool accountStrToBytes32(const std::string& account_id, FfiBytes32* out) {
+        std::vector<uint8_t> bytes;
+        if (base58Decode(account_id, &bytes) && bytes.size() == 32) {
+            std::memcpy(out->data, bytes.data(), 32);
+            return true;
+        }
+        return hexToBytes32(account_id, out);
+    }
+
     nlohmann::json ffiAccountToJson(const FfiAccount& account) {
         nlohmann::json obj;
         obj["program_owner"] = bytesToHex(reinterpret_cast<const uint8_t*>(account.program_owner.data), 32);
@@ -120,7 +221,7 @@ namespace marshalling {
             const FfiNonceList& nonces = body->message.nonces;
             for (uintptr_t i = 0; i < ids.len; ++i) {
                 nlohmann::json ref;
-                ref["account_id"] = bytesToHex(ids.entries[i].data, 32);
+                ref["account_id"] = bytes32ToBase58(ids.entries[i].data, 32);
                 ref["nonce"] = i < nonces.len ? u128LeToDecimal(nonces.entries[i].data) : std::string("0");
                 accounts.push_back(ref);
             }
@@ -148,7 +249,7 @@ namespace marshalling {
             const FfiNonceList& nonces = body->message.nonces;
             for (uintptr_t i = 0; i < ids.len; ++i) {
                 nlohmann::json ref;
-                ref["account_id"] = bytesToHex(ids.entries[i].data, 32);
+                ref["account_id"] = bytes32ToBase58(ids.entries[i].data, 32);
                 ref["nonce"] = i < nonces.len ? u128LeToDecimal(nonces.entries[i].data) : std::string("0");
                 accounts.push_back(ref);
             }
