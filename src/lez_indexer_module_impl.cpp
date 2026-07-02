@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <string>
 
 using namespace marshalling;
 
@@ -15,34 +16,50 @@ namespace {
         return static_cast<IndexerServiceFFI*>(p);
     }
 
-    void warn(const char* method, const char* msg) {
-        std::fprintf(stderr, "lez_indexer_module: %s: %s\n", method, msg);
+    // Module diagnostics go to stderr; logos_host captures it and routes each line
+    // through its own logger, keying on a leading "Error:"/"Warning:" token to pick
+    // the level (plain lines are treated as info). Prefix accordingly.
+    void info(const char* method, const std::string& msg) {
+        std::fprintf(stderr, "lez_indexer_module: %s: %s\n", method, msg.c_str());
+    }
+    void warn(const char* method, const std::string& msg) {
+        std::fprintf(stderr, "lez_indexer_module: Warning: %s: %s\n", method, msg.c_str());
+    }
+    void error(const char* method, const std::string& msg) {
+        std::fprintf(stderr, "lez_indexer_module: Error: %s: %s\n", method, msg.c_str());
     }
 } // namespace
 
 LezIndexerModuleImpl::~LezIndexerModuleImpl() {
     if (stop_indexer() != 0) {
-        warn("destructor", "indexer FFI error on stop");
+        error("destructor", "indexer FFI error on stop");
     }
 }
 
 // === Indexer Lifecycle ===
 
 int64_t LezIndexerModuleImpl::start_indexer(const std::string& config_path) {
-    if (!indexer_service_ffi) {
-        // Null runtime: the FFI creates and owns its own tokio runtime. Storage
-        // goes under this module's instance persistence path (host-owned, stable
-        // per Basecamp --user-dir) so RocksDB never lands in the process CWD.
-        InitializedIndexerServiceFFIResult res =
-            ::start_indexer(nullptr, config_path.c_str(), instancePersistencePath().c_str());
-        if (is_error(&res.error)) {
-            warn("start_indexer", "indexer FFI error");
-            return static_cast<int64_t>(res.error);
-        }
-
-        indexer_service_ffi = res.value;
+    if (indexer_service_ffi) {
+        info("start_indexer", "indexer already running; ignoring start request");
+        return 0;
     }
 
+    // Null runtime: the FFI creates and owns its own tokio runtime. Storage goes
+    // under this module's instance persistence path (host-owned, stable per
+    // Basecamp --user-dir) so RocksDB never lands in the process CWD.
+    const std::string& storage = instancePersistencePath();
+    info("start_indexer", "starting indexer (config=" + config_path + ", storage=" + storage + ")");
+
+    InitializedIndexerServiceFFIResult res =
+        ::start_indexer(nullptr, config_path.c_str(), storage.c_str());
+    if (is_error(&res.error)) {
+        error("start_indexer", "FFI failed to start indexer (OperationStatus "
+                                   + std::to_string(static_cast<int64_t>(res.error)) + ")");
+        return static_cast<int64_t>(res.error);
+    }
+
+    indexer_service_ffi = res.value;
+    info("start_indexer", "indexer started");
     return 0;
 }
 
@@ -55,14 +72,12 @@ int64_t LezIndexerModuleImpl::stop_indexer() {
     OperationStatus operation_result = ::stop_indexer(handle(indexer_service_ffi));
     indexer_service_ffi = nullptr;
     if (is_error(&operation_result)) {
-        warn("stop_indexer", "indexer FFI error on stop");
+        error("stop_indexer", "FFI error on stop (OperationStatus "
+                                  + std::to_string(static_cast<int64_t>(operation_result)) + ")");
         return static_cast<int64_t>(operation_result);
     }
+    info("stop_indexer", "indexer stopped");
     return 0;
-}
-
-void LezIndexerModuleImpl::init_logger(const std::string& level) {
-    ::init_logger(level.c_str());
 }
 
 // === Indexer Queries ===

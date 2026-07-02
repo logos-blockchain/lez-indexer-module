@@ -71,11 +71,6 @@ public:
     std::string getTransactionsByAccount(const std::string& account_id, const std::string& offset, const std::string& limit);
     // clang-format on
 
-    /// Enable the indexer's logging at `level` (off/error/warn/info/debug/trace;
-    /// null or unparseable falls back to info). Scoped to the indexer crates
-    /// only; the first call wins (subsequent calls are no-ops).
-    void init_logger(const std::string& level);
-
 private:
     // IndexerServiceFFI* — opaque here (see class comment); cast in the .cpp.
     void* indexer_service_ffi = nullptr;
