@@ -39,16 +39,27 @@ LezIndexerModuleImpl::~LezIndexerModuleImpl() {
 
 // === Indexer Lifecycle ===
 
+std::string LezIndexerModuleImpl::resolveStorageDir(const char* method) const {
+    // The host owns where state lives (its instance persistence path). When that
+    // isn't provisioned (e.g. running outside Basecamp), fall back to the process
+    // working directory — the same "." the FFI's start_indexer uses — so start and
+    // reset always agree on the store location.
+    const std::string& path = instancePersistencePath();
+    if (!path.empty()) {
+        return path;
+    }
+    warn(method, "no instance persistence path; using the working directory");
+    return ".";
+}
+
 int64_t LezIndexerModuleImpl::start_indexer(const std::string& config_path) {
     if (indexer_service_ffi) {
         info("start_indexer", "indexer already running; ignoring start request");
         return 0;
     }
 
-    // Null runtime: the FFI creates and owns its own tokio runtime. Storage goes
-    // under this module's instance persistence path (host-owned, stable per
-    // Basecamp --user-dir) so RocksDB never lands in the process CWD.
-    const std::string& storage = instancePersistencePath();
+    // Null runtime: the FFI creates and owns its own tokio runtime.
+    const std::string storage = resolveStorageDir("start_indexer");
     info("start_indexer", "starting indexer (config=" + config_path + ", storage=" + storage + ")");
 
     InitializedIndexerServiceFFIResult res = ::start_indexer(nullptr, config_path.c_str(), storage.c_str());
@@ -92,15 +103,8 @@ int64_t LezIndexerModuleImpl::reset_storage(const std::string& config_path) {
         return stop_code;
     }
 
-    // if running from Basecamp, the instance persistence path is stable and owned by the host;
-    // otherwise it falls back to the process CWD (the same path start_indexer uses).
-    std::filesystem::path storage = instancePersistencePath();
-    if (storage.empty()) {
-        warn("reset_storage", "no instance persistence path; using the working directory (matches start_indexer)");
-        storage = ".";
-    }
-
     // FFI stores RocksDB at <storage>/rocksdb-{channel_id}
+    const std::filesystem::path storage = resolveStorageDir("reset_storage");
     std::string channel_id;
     try {
         std::ifstream in(config_path);

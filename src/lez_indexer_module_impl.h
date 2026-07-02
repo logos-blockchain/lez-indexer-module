@@ -80,6 +80,11 @@ public:
     // clang-format on
 
 private:
+    // Storage dir handed to the FFI, either:
+    // - the host's instance persistence path
+    // - the process working directory (".") when the host didn't provision one
+    std::string resolveStorageDir(const char* method) const;
+
     // IndexerServiceFFI* — opaque here (see class comment); cast in the .cpp.
     void* indexer_service_ffi = nullptr;
 };
