@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <fstream>
 #include <string>
 
 using namespace marshalling;
@@ -80,6 +81,54 @@ int64_t LezIndexerModuleImpl::stop_indexer() {
         return static_cast<int64_t>(operation_result);
     }
     info("stop_indexer", "indexer stopped");
+    return 0;
+}
+
+int64_t LezIndexerModuleImpl::reset_storage(const std::string& config_path) {
+    // Stop first so RocksDB is closed before its files are deleted
+    const int64_t stop_code = stop_indexer();
+    if (stop_code != 0) {
+        error("reset_storage", "could not stop indexer before wiping storage");
+        return stop_code;
+    }
+
+    const std::string& storage = instancePersistencePath();
+    if (storage.empty()) {
+        error("reset_storage", "no instance persistence path; refusing to wipe (nothing to target)");
+        return -1;
+    }
+
+    // FFI stores RocksDB at <storage>/rocksdb-{channel_id}
+    std::string channel_id;
+    try {
+        std::ifstream in(config_path);
+        if (!in) {
+            error("reset_storage", "could not open config " + config_path);
+            return -1;
+        }
+        channel_id = nlohmann::json::parse(in).at("channel_id").get<std::string>();
+    } catch (const std::exception& e) {
+        error("reset_storage", std::string("could not read channel_id from config: ") + e.what());
+        return -1;
+    }
+    if (channel_id.empty()) {
+        error("reset_storage", "config has an empty channel_id");
+        return -1;
+    }
+
+    const std::filesystem::path store = std::filesystem::path(storage) / ("rocksdb-" + channel_id);
+    std::error_code ec;
+    if (!std::filesystem::exists(store, ec)) {
+        info("reset_storage", "no store at " + store.string() + "; nothing to wipe");
+        return 0;
+    }
+    std::filesystem::remove_all(store, ec);
+    if (ec) {
+        error("reset_storage", "failed to remove " + store.string() + ": " + ec.message());
+        return -1;
+    }
+
+    info("reset_storage", "wiped rocksdb store " + store.string());
     return 0;
 }
 

@@ -41,6 +41,14 @@ public:
     /// own). Returns 0 on success, else the FFI OperationStatus code.
     int64_t stop_indexer();
 
+    /// Stop the indexer (if running) and delete the RocksDB store for the config's
+    /// channel — `<instancePersistencePath>/rocksdb-<channel_id>`, the exact path the
+    /// FFI uses — so the next start_indexer re-indexes from scratch. The recovery
+    /// path when the store is stale against a different/reset chain. Pass the same
+    /// `config_path` given to start_indexer; does NOT restart. Returns 0 on success,
+    /// else non-zero. int64_t for the same codegen reason as start_indexer.
+    int64_t reset_storage(const std::string& config_path);
+
     /// Account by id, accepting Base58 (canonical) or 32-byte hex. The returned
     /// JSON omits the id; callers inject the queried id themselves.
     std::string getAccount(const std::string& account_id);
