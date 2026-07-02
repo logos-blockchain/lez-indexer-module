@@ -92,10 +92,12 @@ int64_t LezIndexerModuleImpl::reset_storage(const std::string& config_path) {
         return stop_code;
     }
 
-    const std::string& storage = instancePersistencePath();
+    // if running from Basecamp, the instance persistence path is stable and owned by the host;
+    // otherwise it falls back to the process CWD (the same path start_indexer uses).
+    std::filesystem::path storage = instancePersistencePath();
     if (storage.empty()) {
-        error("reset_storage", "no instance persistence path; refusing to wipe (nothing to target)");
-        return -1;
+        warn("reset_storage", "no instance persistence path; using the working directory (matches start_indexer)");
+        storage = ".";
     }
 
     // FFI stores RocksDB at <storage>/rocksdb-{channel_id}
@@ -116,7 +118,7 @@ int64_t LezIndexerModuleImpl::reset_storage(const std::string& config_path) {
         return -1;
     }
 
-    const std::filesystem::path store = std::filesystem::path(storage) / ("rocksdb-" + channel_id);
+    const std::filesystem::path store = storage / ("rocksdb-" + channel_id);
     std::error_code ec;
     if (!std::filesystem::exists(store, ec)) {
         info("reset_storage", "no store at " + store.string() + "; nothing to wipe");
