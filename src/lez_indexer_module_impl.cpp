@@ -50,11 +50,12 @@ int64_t LezIndexerModuleImpl::start_indexer(const std::string& config_path) {
     const std::string& storage = instancePersistencePath();
     info("start_indexer", "starting indexer (config=" + config_path + ", storage=" + storage + ")");
 
-    InitializedIndexerServiceFFIResult res =
-        ::start_indexer(nullptr, config_path.c_str(), storage.c_str());
+    InitializedIndexerServiceFFIResult res = ::start_indexer(nullptr, config_path.c_str(), storage.c_str());
     if (is_error(&res.error)) {
-        error("start_indexer", "FFI failed to start indexer (OperationStatus "
-                                   + std::to_string(static_cast<int64_t>(res.error)) + ")");
+        error(
+            "start_indexer",
+            "FFI failed to start indexer (OperationStatus " + std::to_string(static_cast<int64_t>(res.error)) + ")"
+        );
         return static_cast<int64_t>(res.error);
     }
 
@@ -72,8 +73,10 @@ int64_t LezIndexerModuleImpl::stop_indexer() {
     OperationStatus operation_result = ::stop_indexer(handle(indexer_service_ffi));
     indexer_service_ffi = nullptr;
     if (is_error(&operation_result)) {
-        error("stop_indexer", "FFI error on stop (OperationStatus "
-                                  + std::to_string(static_cast<int64_t>(operation_result)) + ")");
+        error(
+            "stop_indexer",
+            "FFI error on stop (OperationStatus " + std::to_string(static_cast<int64_t>(operation_result)) + ")"
+        );
         return static_cast<int64_t>(operation_result);
     }
     info("stop_indexer", "indexer stopped");
