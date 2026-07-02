@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include <string>
 
@@ -18,8 +19,8 @@ namespace {
     }
 
     // Module diagnostics go to stderr; logos_host captures it and routes each line
-    // through its own logger, keying on a leading "Error:"/"Warning:" token to pick
-    // the level (plain lines are treated as info). Prefix accordingly.
+    // through its own logger, classifying by an "Error:"/"Warning:" token found
+    // anywhere in the line (plain lines are treated as info). Prefix accordingly.
     void info(const char* method, const std::string& msg) {
         std::fprintf(stderr, "lez_indexer_module: %s: %s\n", method, msg.c_str());
     }
@@ -117,24 +118,27 @@ int64_t LezIndexerModuleImpl::reset_storage(const std::string& config_path) {
         error("reset_storage", std::string("could not read channel_id from config: ") + e.what());
         return -1;
     }
-    if (channel_id.empty()) {
-        error("reset_storage", "config has an empty channel_id");
+    // A channel id is a 32-byte hex string. Validate before building a path so a
+    // malformed/edited config can't inject separators ("../", absolute paths) and
+    // make remove_all escape the storage dir.
+    if (!isHex(channel_id, 64)) {
+        error("reset_storage", "config channel_id is not a 64-char hex string; refusing to build a wipe path");
         return -1;
     }
 
     const std::filesystem::path store = storage / ("rocksdb-" + channel_id);
     std::error_code ec;
-    if (!std::filesystem::exists(store, ec)) {
-        info("reset_storage", "no store at " + store.string() + "; nothing to wipe");
-        return 0;
-    }
-    std::filesystem::remove_all(store, ec);
+    // remove_all returns the number of entries removed and only sets `ec` on a real
+    // error; a missing store removes 0 with no error. No exists() pre-check — that
+    // would mask an IO/permission error as a successful "nothing to wipe".
+    const std::uintmax_t removed = std::filesystem::remove_all(store, ec);
     if (ec) {
         error("reset_storage", "failed to remove " + store.string() + ": " + ec.message());
         return -1;
     }
-
-    info("reset_storage", "wiped rocksdb store " + store.string());
+    info("reset_storage",
+         removed == 0 ? "no store at " + store.string() + "; nothing to wipe"
+                      : "wiped rocksdb store " + store.string());
     return 0;
 }
 
