@@ -9,7 +9,8 @@
 
   inputs = {
     logos-module-builder.url = "github:logos-co/logos-module-builder";
-    logos-execution-zone.url = "github:logos-blockchain/logos-execution-zone?ref=v0.2.2";
+    # FIXME: pinned to the fees FFI branch (erhant/fees-ffi-fixes); re-pin to main once merged upstream.
+    logos-execution-zone.url = "github:logos-blockchain/logos-execution-zone?rev=b3283d38c367b40e7fe6ac6ce72ed485604a9e31";
   };
 
   outputs =
