@@ -9,8 +9,7 @@
 
   inputs = {
     logos-module-builder.url = "github:logos-co/logos-module-builder";
-    # ab2018a0e2c42e02e2dcc94bb0c5b4b807e06308: latest main during RC
-    logos-execution-zone.url = "github:logos-blockchain/logos-execution-zone?rev=ab2018a0e2c42e02e2dcc94bb0c5b4b807e06308";
+    logos-execution-zone.url = "github:logos-blockchain/logos-execution-zone?ref=v0.2.5-rc1";
   };
 
   outputs =
