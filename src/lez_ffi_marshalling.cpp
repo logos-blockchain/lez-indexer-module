@@ -4,6 +4,7 @@
 #include <cctype>
 #include <cstdint>
 #include <cstring>
+#include <iterator>
 #include <string>
 #include <vector>
 
@@ -209,10 +210,30 @@ namespace marshalling {
 
     nlohmann::json ffiAccountToJson(const FfiAccount& account) {
         nlohmann::json obj;
-        obj["program_owner"] = bytesToHex(reinterpret_cast<const uint8_t*>(account.program_owner.data), 32);
-        obj["balance"] = u128LeToDecimal(account.balance.data);
         obj["nonce"] = u128LeToDecimal(account.nonce.data);
-        obj["data_size"] = static_cast<int>(account.data_len);
+
+        // The native balance lives in the shard owned by the native token
+        // program (the all-zero account id): absent means 0, otherwise a
+        // 16-byte little-endian u128. Any other encoding is invalid -> null.
+        obj["balance"] = "0";
+        nlohmann::json shards = nlohmann::json::array();
+        for (uintptr_t i = 0; i < account.shards_len; ++i) {
+            const FfiShard& shard = account.shards[i];
+            const bool isNative = std::all_of(std::begin(shard.program.data), std::end(shard.program.data),
+                                              [](uint8_t b) { return b == 0; });
+            if (isNative) {
+                if (shard.data_len == 16) {
+                    obj["balance"] = u128LeToDecimal(shard.data);
+                } else {
+                    obj["balance"] = nullptr;
+                }
+            }
+            nlohmann::json s;
+            s["program_account_id"] = bytes32ToBase58(shard.program.data, 32);
+            s["data_size"] = static_cast<int>(shard.data_len);
+            shards.push_back(s);
+        }
+        obj["shards"] = shards;
         return obj;
     }
 
@@ -227,14 +248,15 @@ namespace marshalling {
             }
             obj["type"] = "Public";
             obj["hash"] = bytesToHex(body->hash.data, 32);
-            obj["program_id"] = bytesToHex(reinterpret_cast<const uint8_t*>(body->message.program_id.data), 32);
+            obj["program_account_id"] = bytes32ToBase58(body->message.program_account_id.data, 32);
 
             nlohmann::json accounts = nlohmann::json::array();
-            const FfiAccountIdList& ids = body->message.account_ids;
+            const FfiProgramShardSelectorList& selectors = body->message.shard_selectors;
             const FfiNonceList& nonces = body->message.nonces;
-            for (uintptr_t i = 0; i < ids.len; ++i) {
+            for (uintptr_t i = 0; i < selectors.len; ++i) {
                 nlohmann::json ref;
-                ref["account_id"] = bytes32ToBase58(ids.entries[i].data, 32);
+                ref["account_id"] = bytes32ToBase58(selectors.entries[i].account_id.data, 32);
+                ref["program_account_id"] = bytes32ToBase58(selectors.entries[i].program_account_id.data, 32);
                 ref["nonce"] = i < nonces.len ? u128LeToDecimal(nonces.entries[i].data) : std::string("0");
                 accounts.push_back(ref);
             }
