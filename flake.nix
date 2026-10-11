@@ -9,8 +9,7 @@
 
   inputs = {
     logos-module-builder.url = "github:logos-co/logos-module-builder";
-    # the ref commit is 0.3.0 + r0 linking fix on `main`
-    logos-execution-zone.url = "github:logos-blockchain/logos-execution-zone?rev=411adc8fdb3f4c3af64354c4fc26d3e4a6a3d3f4";
+    logos-execution-zone.url = "github:logos-blockchain/logos-execution-zone?ref=v0.3.1";
   };
 
   outputs =
