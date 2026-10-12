@@ -81,8 +81,7 @@ namespace marshalling {
         }
     } // namespace
 
-    // Lower-case hex of `length` raw bytes (used for 32-byte hashes/ids/keys and
-    // 64-byte signatures).
+    // Lower-case hex of `length` raw bytes (used for 32-byte hashes/ids/keys).
     std::string bytesToHex(const uint8_t* data, const size_t length) {
         static const char* digits = "0123456789abcdef";
         std::string out;
@@ -336,7 +335,6 @@ namespace marshalling {
         obj["hash"] = bytesToHex(block.header.hash.data, 32);
         obj["prev_block_hash"] = bytesToHex(block.header.prev_block_hash.data, 32);
         obj["timestamp"] = u64ToString(block.header.timestamp);
-        obj["signature"] = bytesToHex(block.header.signature.data, 64);
         obj["bedrock_status"] = bedrockStatusToString(block.bedrock_status);
 
         nlohmann::json transactions = nlohmann::json::array();

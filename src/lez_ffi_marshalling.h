@@ -25,8 +25,7 @@
 // precision loss of JSON numbers; counts/sizes are emitted as numbers.
 namespace marshalling {
 
-    // Lower-case hex of `length` raw bytes (32-byte hashes/ids/keys, 64-byte
-    // signatures).
+    // Lower-case hex of `length` raw bytes (32-byte hashes/ids/keys).
     std::string bytesToHex(const uint8_t* data, size_t length);
 
     // FfiU128 is a 16-byte little-endian integer (balances, nonces); rendered
