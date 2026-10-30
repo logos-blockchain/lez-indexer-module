@@ -18,6 +18,10 @@ namespace {
         return static_cast<IndexerServiceFFI*>(p);
     }
 
+    inline bool is_error(const OperationStatus* status) {
+        return *status != Ok;
+    }
+
     // Module diagnostics go to stderr; logos_host captures it and routes each line
     // through its own logger, classifying by an "Error:"/"Warning:" token found
     // anywhere in the line (plain lines are treated as info). Prefix accordingly.
@@ -162,14 +166,17 @@ std::string LezIndexerModuleImpl::getAccount(const std::string& account_id) {
         return {};
     }
 
-    PointerResult_FfiAccount__OperationStatus res = ::query_account(handle(indexer_service_ffi), id);
+    PointerResult_FfiOption_FfiAccount_____OperationStatus res = ::query_account(handle(indexer_service_ffi), id);
     if (is_error(&res.error) || !res.value) {
         warn("getAccount", "indexer FFI error");
         return {};
     }
 
-    const std::string out = jsonToCompactString(ffiAccountToJson(*res.value));
-    ::free_ffi_account(res.value);
+    // An account the indexer has never seen is the default (empty) account.
+    const FfiAccount empty{};
+    const FfiAccount& account = res.value->is_some && res.value->value ? *res.value->value : empty;
+    const std::string out = jsonToCompactString(ffiAccountToJson(account));
+    ::free_ffi_account_opt(res.value);
     return out;
 }
 

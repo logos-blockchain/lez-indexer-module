@@ -211,30 +211,53 @@ namespace marshalling {
         nlohmann::json obj;
         obj["nonce"] = u128LeToDecimal(account.nonce.data);
 
-        // The native balance lives in the shard owned by the native token
+        // The native balance lives in the actor state owned by the native token
         // program (the all-zero account id): absent means 0, otherwise a
         // 16-byte little-endian u128. Any other encoding is invalid -> null.
         obj["balance"] = "0";
-        nlohmann::json shards = nlohmann::json::array();
-        for (uintptr_t i = 0; i < account.shards_len; ++i) {
-            const FfiShard& shard = account.shards[i];
-            const bool isNative = std::all_of(std::begin(shard.program.data), std::end(shard.program.data),
-                                              [](uint8_t b) { return b == 0; });
+        nlohmann::json actorStates = nlohmann::json::array();
+        for (uintptr_t i = 0; i < account.actor_states_len; ++i) {
+            const FfiActorState& state = account.actor_states[i];
+            const bool isNative = std::all_of(
+                std::begin(state.program.data), std::end(state.program.data), [](uint8_t b) { return b == 0; }
+            );
             if (isNative) {
-                if (shard.data_len == 16) {
-                    obj["balance"] = u128LeToDecimal(shard.data);
+                if (state.data_len == 16) {
+                    obj["balance"] = u128LeToDecimal(state.data);
                 } else {
                     obj["balance"] = nullptr;
                 }
             }
             nlohmann::json s;
-            s["program_account_id"] = bytes32ToBase58(shard.program.data, 32);
-            s["data_size"] = static_cast<int>(shard.data_len);
-            shards.push_back(s);
+            s["program_account_id"] = bytes32ToBase58(state.program.data, 32);
+            s["data_size"] = static_cast<int>(state.data_len);
+            actorStates.push_back(s);
         }
-        obj["shards"] = shards;
+        obj["actor_states"] = actorStates;
         return obj;
     }
+
+    namespace {
+        // Actors touched by a transaction, each with its nonce when the
+        // transaction bumps one (nonces are keyed by account, not by index).
+        nlohmann::json actorsToJson(const FfiActorList& actors, const FfiNonceList& nonces) {
+            nlohmann::json accounts = nlohmann::json::array();
+            for (uintptr_t i = 0; i < actors.len; ++i) {
+                const FfiActor& actor = actors.entries[i];
+                nlohmann::json ref;
+                ref["account_id"] = bytes32ToBase58(actor.account_id.data, 32);
+                ref["program_account_id"] = bytes32ToBase58(actor.program_account_id.data, 32);
+                for (uintptr_t j = 0; j < nonces.len; ++j) {
+                    if (std::memcmp(nonces.entries[j].account_id.data, actor.account_id.data, 32) == 0) {
+                        ref["nonce"] = u128LeToDecimal(nonces.entries[j].nonce.data);
+                        break;
+                    }
+                }
+                accounts.push_back(ref);
+            }
+            return accounts;
+        }
+    } // namespace
 
     nlohmann::json ffiTransactionToJson(const FfiTransaction& tx) {
         nlohmann::json obj;
@@ -247,23 +270,11 @@ namespace marshalling {
             }
             obj["type"] = "Public";
             obj["hash"] = bytesToHex(body->hash.data, 32);
-            obj["program_account_id"] = bytes32ToBase58(body->message.program_account_id.data, 32);
-
-            nlohmann::json accounts = nlohmann::json::array();
-            const FfiProgramShardSelectorList& selectors = body->message.shard_selectors;
-            const FfiNonceList& nonces = body->message.nonces;
-            for (uintptr_t i = 0; i < selectors.len; ++i) {
-                nlohmann::json ref;
-                ref["account_id"] = bytes32ToBase58(selectors.entries[i].account_id.data, 32);
-                ref["program_account_id"] = bytes32ToBase58(selectors.entries[i].program_account_id.data, 32);
-                ref["nonce"] = i < nonces.len ? u128LeToDecimal(nonces.entries[i].data) : std::string("0");
-                accounts.push_back(ref);
-            }
-            obj["accounts"] = accounts;
-
-            // Raw instruction bytes as hex.
-            const FfiInstructionDataList& instr = body->message.instruction_data;
-            obj["instruction_data"] = bytesToHex(instr.entries, instr.len);
+            // The root call: the program invoked and its raw message bytes (hex).
+            const FfiRootCall& root = body->message.root;
+            obj["program_account_id"] = bytes32ToBase58(root.to.program_account_id.data, 32);
+            obj["accounts"] = actorsToJson(body->message.public_context.actors, body->message.nonces);
+            obj["instruction_data"] = bytesToHex(root.message.entries, root.message.len);
             obj["signature_count"] = static_cast<int>(body->witness_set.len);
 
             // Declared fee (payer + caps), not the amount actually charged.
@@ -289,16 +300,7 @@ namespace marshalling {
             obj["type"] = "PrivacyPreserving";
             obj["hash"] = bytesToHex(body->hash.data, 32);
 
-            nlohmann::json accounts = nlohmann::json::array();
-            const FfiPublicActionList& publicActions = body->message.public_actions;
-            const FfiNonceList& nonces = body->message.nonces;
-            for (uintptr_t i = 0; i < publicActions.len; ++i) {
-                nlohmann::json ref;
-                ref["account_id"] = bytes32ToBase58(publicActions.entries[i].account_id.data, 32);
-                ref["nonce"] = i < nonces.len ? u128LeToDecimal(nonces.entries[i].data) : std::string("0");
-                accounts.push_back(ref);
-            }
-            obj["accounts"] = accounts;
+            obj["accounts"] = actorsToJson(body->message.public_context.actors, body->message.nonces);
 
             // Each private action bundles nullifier + root + commitment +
             // encrypted post-state, so the former per-list counts collapse
@@ -308,6 +310,19 @@ namespace marshalling {
             obj["validity_window_end"] = u64ToString(body->message.block_validity_window[1]);
             obj["signature_count"] = static_cast<int>(body->witness_set.len);
             obj["proof_size"] = static_cast<int>(body->proof.len);
+
+            // The fee is paid inside the proof, so only its refund target (if
+            // any) is public. Null when the transaction declares no fee.
+            if (body->message.has_fee) {
+                const FfiProvenFee& fee = body->message.fee;
+                nlohmann::json feeObj;
+                feeObj["refund_to"] = fee.has_refund_to ? nlohmann::json(bytes32ToBase58(fee.refund_to.data, 32))
+                                                        : nlohmann::json(nullptr);
+                feeObj["has_fallback"] = fee.has_fallback;
+                obj["fee"] = feeObj;
+            } else {
+                obj["fee"] = nullptr;
+            }
             break;
         }
         }
